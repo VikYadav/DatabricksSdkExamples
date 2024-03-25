@@ -1,0 +1,474 @@
+{
+  "datasets": [
+    {
+      "name": "3df2e81f",
+      "displayName": "Failures in past 2 days",
+      "query": "select\n  run_name,\n  cloud,\n  region,\n  from_utc_timestamp(timestamp_millis(end_time), 'Europe/Amsterdam') end_time_ams,\n  result_state,\n  concat(\n    \"http://go/st-prod-\",\n    region,\n    \"#job/\",\n    job_id,\n    \"/run/\",\n    run_id\n  ) link,\n  state_message,\n  task_error\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL 48 HOUR\norder by end_time desc;"
+    },
+    {
+      "name": "3e3f08e5",
+      "displayName": "Daily failures",
+      "query": "select\n  date_trunc('DAY', timestamp_millis(end_time)) date,\n  cloud,\n  case\n    when state_message LIKE '%AZURE_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE%' then 'AZURE_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE'\n    when state_message LIKE '%Driver node shut down by cloud provider%' then 'Driver node shut down by cloud provider'\n    else 'OTHERS'\n  end as error_code,\n  count(*) num_failures\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL {{lookback_days}} DAY\ngroup by\n  1,\n  2, \n  3\nunion all\n  -- Plot the timeline.\nselect\n  explode(\n    transform(\n      sequence(0, {{lookback_days}}, 1),\n      d -> date_trunc(\n        'DAY',\n        current_timestamp() - make_dt_interval(d, 0, 0, 0)\n      )\n    )\n  ),\n  \"timeline\",\n  \"timeline\",\n  0;"
+    },
+    {
+      "name": "85987ea7",
+      "displayName": "Daily job failures by error code",
+      "query": "select\n  date_trunc('DAY', timestamp_millis(end_time)) date,\n  cloud,\n  case\n    when state_message LIKE '%AZURE_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE%' then 'AZURE_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE'\n    when state_message LIKE '%Driver node shut down by cloud provider%' then 'Driver node shut down by cloud provider'\n    else 'OTHERS'\n  end as error_code,\n  count(*) num_failures\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL {{lookback_days}} DAY\ngroup by\n  1,\n  2, \n  3\nunion all\n  -- Plot the timeline.\nselect\n  explode(\n    transform(\n      sequence(0, {{lookback_days}}, 1),\n      d -> date_trunc(\n        'DAY',\n        current_timestamp() - make_dt_interval(d, 0, 0, 0)\n      )\n    )\n  ),\n  \"timeline\",\n  \"timeline\",\n  0;"
+    },
+    {
+      "name": "bf0bb7d9",
+      "displayName": "Total number of failures",
+      "query": "select\n  date_trunc('DAY', timestamp_millis(end_time)) date,\n  cloud,\n  case\n    when state_message LIKE '%AZURE_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE%' then 'AZURE_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE'\n    when state_message LIKE '%Driver node shut down by cloud provider%' then 'Driver node shut down by cloud provider'\n    else 'OTHERS'\n  end as error_code,\n  count(*) num_failures\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL {{lookback_days}} DAY\ngroup by\n  1,\n  2, \n  3\nunion all\n  -- Plot the timeline.\nselect\n  explode(\n    transform(\n      sequence(0, {{lookback_days}}, 1),\n      d -> date_trunc(\n        'DAY',\n        current_timestamp() - make_dt_interval(d, 0, 0, 0)\n      )\n    )\n  ),\n  \"timeline\",\n  \"timeline\",\n  0;"
+    },
+    {
+      "name": "bfb63e38",
+      "displayName": "Total number of failures per cloud/job in past 2 days",
+      "query": "\n  select\n  date_trunc('HOUR', timestamp_millis(end_time)) date_hour,\n  cloud,\n  concat(cloud,'/', run_name) cloud_pipeline,\n  concat(cloud, '/', region, '/', run_name) cloud_region_pipeline,\n  count(*) num_failures\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL 48 HOUR\ngroup by\n  1,\n  2,\n  3,\n  4\nunion all\n  -- Plot the timeline.\nselect\n  explode(\n    transform(\n      sequence(0, 48, 1),\n      h -> date_trunc(\n        'HOUR',\n        current_timestamp() - make_dt_interval(0, h, 0, 0)\n      )\n    )\n  ),\n  \"timeline\",\n  \"timeline\",\n  \"timeline\",\n  0;"
+    },
+    {
+      "name": "d57e61f4",
+      "displayName": "Hourly number of failures in past 2 days",
+      "query": "select\n  date_trunc('HOUR', timestamp_millis(end_time)) date_hour,\n  cloud,\n  concat(cloud,'/', run_name) cloud_pipeline,\n  concat(cloud, '/', region, '/', run_name) cloud_region_pipeline,\n  count(*) num_failures\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL 48 HOUR\ngroup by\n  1,\n  2,\n  3,\n  4\nunion all\n  -- Plot the timeline.\nselect\n  explode(\n    transform(\n      sequence(0, 48, 1),\n      h -> date_trunc(\n        'HOUR',\n        current_timestamp() - make_dt_interval(0, h, 0, 0)\n      )\n    )\n  ),\n  \"timeline\",\n  \"timeline\",\n  \"timeline\",\n  0;\n  "
+    },
+    {
+      "name": "dc5483df",
+      "displayName": "Total number of failures in past 2 days",
+      "query": "\nselect\n  date_trunc('HOUR', timestamp_millis(end_time)) date_hour,\n  cloud,\n  concat(cloud,'/', run_name) cloud_pipeline,\n  concat(cloud, '/', region, '/', run_name) cloud_region_pipeline,\n  count(*) num_failures\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL 48 HOUR\ngroup by\n  1,\n  2,\n  3,\n  4\nunion all\n  -- Plot the timeline.\nselect\n  explode(\n    transform(\n      sequence(0, 48, 1),\n      h -> date_trunc(\n        'HOUR',\n        current_timestamp() - make_dt_interval(0, h, 0, 0)\n      )\n    )\n  ),\n  \"timeline\",\n  \"timeline\",\n  \"timeline\",\n  0;"
+    },
+    {
+      "name": "ee597103",
+      "displayName": "Current status",
+      "query": "select\n  *\nfrom(\n    select\n      region,\n      run_name,\n      max_by(job_id, start_time) job_id,\n      max_by(run_id, start_time) run_id,\n      max_by(IF(result_state != \"\", result_state, life_cycle_state), start_time) state\n    from\n      vik_catalog.demos.job_runs_v2\n    where\n      cloud = 'Azure'\n      and timestamp_millis(start_time) >= current_timestamp() - interval 2 week\n      --and run_name like '%(%)'\n    group by\n      1,\n      2\n  ) pivot(\n    concat(\n      \"<a href='http://go/st-prod-\",\n      max(region),\n      \"#job/\",\n      max(job_id),\n      \"/run/\",\n      max(run_id),\n      \"' style='color: \",\n      case\n        when max(state) IN ('FAILED', 'TIMEDOUT', 'CANCELED') then 'red'\n        else 'green'\n      end,\n      \"' target='_blank'>\",\n      max(state),\n      \"</a>\"\n    ) for region in (\n      \"westEurope\" AS `westEurope (primary)`\n    )\n  );"
+    },
+    {
+      "name": "f2695168",
+      "displayName": "Hourly number of failures per cloud/job in past 2 days",
+      "query": "select\n  date_trunc('HOUR', timestamp_millis(end_time)) date_hour,\n  cloud,\n  concat(cloud,'/', run_name) cloud_pipeline,\n  concat(cloud, '/', region, '/', run_name) cloud_region_pipeline,\n  count(*) num_failures\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL 48 HOUR\ngroup by\n  1,\n  2,\n  3,\n  4\nunion all\n  -- Plot the timeline.\nselect\n  explode(\n    transform(\n      sequence(0, 48, 1),\n      h -> date_trunc(\n        'HOUR',\n        current_timestamp() - make_dt_interval(0, h, 0, 0)\n      )\n    )\n  ),\n  \"timeline\",\n  \"timeline\",\n  \"timeline\",\n  0;"
+    },
+    {
+      "name": "fa0398a2",
+      "displayName": "Total number of failures per error code",
+      "query": "select\n  date_trunc('DAY', timestamp_millis(end_time)) date,\n  cloud,\n  case\n    when state_message LIKE '%AZURE_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE%' then 'AZURE_INSUFFICIENT_INSTANCE_CAPACITY_FAILURE'\n    when state_message LIKE '%Driver node shut down by cloud provider%' then 'Driver node shut down by cloud provider'\n    else 'OTHERS'\n  end as error_code,\n  count(*) num_failures\nfrom\n  vik_catalog.demos.job_runs_v2\nwhere\n  result_state IN ('FAILED', 'TIMEDOUT')\n  and timestamp_millis(end_time) >= current_timestamp() - INTERVAL {{lookback_days}} DAY\ngroup by\n  1,\n  2, \n  3\nunion all\n  -- Plot the timeline.\nselect\n  explode(\n    transform(\n      sequence(0, {{lookback_days}}, 1),\n      d -> date_trunc(\n        'DAY',\n        current_timestamp() - make_dt_interval(d, 0, 0, 0)\n      )\n    )\n  ),\n  \"timeline\",\n  \"timeline\",\n  0;"
+    }
+  ],
+  "pages": [
+    {
+      "name": "a69b4c28",
+      "displayName": "New Page",
+      "layout": [
+        {
+          "widget": {
+            "name": "049a8df1",
+            "queries": [
+              {
+                "name": "9e42cf57a7c74687a0514777df1ae1d0",
+                "query": {
+                  "datasetName": "d57e61f4",
+                  "fields": [
+                    {
+                      "name": "cloud",
+                      "expression": "`cloud`"
+                    },
+                    {
+                      "name": "column_bf90d768839",
+                      "expression": "SUM(`num_failures`)"
+                    },
+                    {
+                      "name": "date_hour",
+                      "expression": "`date_hour`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Hourly number of failures in past 2 days",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"line\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true}},\"seriesOptions\":{\"column_bf90d768839\":{\"yAxis\":0,\"type\":\"line\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"showDataLabels\":false,\"columnConfigurationMap\":{\"x\":{\"column\":\"date_hour\",\"id\":\"column_bf90d768836\"},\"y\":[{\"id\":\"column_bf90d768839\",\"column\":\"num_failures\",\"transform\":\"SUM\"}],\"series\":{\"column\":\"cloud\",\"id\":\"column_bf90d768841\"}},\"isAggregationOn\":true}",
+                "query_name": "9e42cf57a7c74687a0514777df1ae1d0"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 56,
+            "width": 3,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "0a8d7998",
+            "queries": [
+              {
+                "name": "b443ca2ff91144e9b97be6db2e7f83c3",
+                "query": {
+                  "datasetName": "fa0398a2",
+                  "fields": [
+                    {
+                      "name": "column_bf90d768807",
+                      "expression": "SUM(`num_failures`)"
+                    },
+                    {
+                      "name": "error_code",
+                      "expression": "`error_code`"
+                    },
+                    {
+                      "name": "error_code",
+                      "expression": "`error_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total number of failures per error code",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"pie\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true}},\"seriesOptions\":{\"column_bf90d768807\":{\"yAxis\":0,\"type\":\"pie\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"showDataLabels\":true,\"columnConfigurationMap\":{\"x\":{\"column\":\"error_code\",\"id\":\"column_9ca44ed6124\"},\"y\":[{\"id\":\"column_bf90d768807\",\"column\":\"num_failures\",\"transform\":\"SUM\"}],\"series\":{\"column\":\"error_code\",\"id\":\"column_bf90d768809\"}},\"isAggregationOn\":true}",
+                "query_name": "b443ca2ff91144e9b97be6db2e7f83c3"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 45,
+            "width": 3,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "209e205e",
+            "queries": [
+              {
+                "name": "e21582f5009343ffa78f5d641fb73005",
+                "query": {
+                  "datasetName": "bf0bb7d9",
+                  "fields": [
+                    {
+                      "name": "cloud",
+                      "expression": "`cloud`"
+                    },
+                    {
+                      "name": "cloud",
+                      "expression": "`cloud`"
+                    },
+                    {
+                      "name": "column_bf90d768304",
+                      "expression": "SUM(`num_failures`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total number of failures",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"pie\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true}},\"seriesOptions\":{\"column_bf90d768304\":{\"yAxis\":0,\"type\":\"pie\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"showDataLabels\":true,\"columnConfigurationMap\":{\"x\":{\"column\":\"cloud\",\"id\":\"column_9ca44ed6113\"},\"y\":[{\"id\":\"column_bf90d768304\",\"column\":\"num_failures\",\"transform\":\"SUM\"}],\"series\":{\"column\":\"cloud\",\"id\":\"column_bf90d768307\"}},\"isAggregationOn\":true}",
+                "query_name": "e21582f5009343ffa78f5d641fb73005"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 33,
+            "width": 3,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "64945133",
+            "queries": [
+              {
+                "name": "0164dd004cfd40ecbed50e9378277627",
+                "query": {
+                  "datasetName": "3e3f08e5",
+                  "fields": [
+                    {
+                      "name": "cloud",
+                      "expression": "`cloud`"
+                    },
+                    {
+                      "name": "column_bf90d768155",
+                      "expression": "SUM(`num_failures`)"
+                    },
+                    {
+                      "name": "date",
+                      "expression": "`date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Daily number of job failures",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"line\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true},\"percentValues\":false},\"seriesOptions\":{\"column_bf90d768155\":{\"yAxis\":0,\"type\":\"line\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":false,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"showDataLabels\":false,\"columnConfigurationMap\":{\"x\":{\"column\":\"date\",\"id\":\"column_bf90d768152\"},\"y\":[{\"id\":\"column_bf90d768155\",\"column\":\"num_failures\",\"transform\":\"SUM\"}],\"series\":{\"column\":\"cloud\",\"id\":\"column_bf90d768223\"}},\"isAggregationOn\":true}",
+                "query_name": "0164dd004cfd40ecbed50e9378277627"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 33,
+            "width": 3,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "692d639b",
+            "queries": [
+              {
+                "name": "1f7679514cf5473286af6c8576453dbe",
+                "query": {
+                  "datasetName": "dc5483df",
+                  "fields": [
+                    {
+                      "name": "cloud",
+                      "expression": "`cloud`"
+                    },
+                    {
+                      "name": "cloud",
+                      "expression": "`cloud`"
+                    },
+                    {
+                      "name": "column_36e756e672",
+                      "expression": "SUM(`num_failures`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total number of failures in past 2 days",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"pie\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true}},\"seriesOptions\":{\"column_36e756e654\":{\"yAxis\":0,\"type\":\"pie\"},\"column_36e756e672\":{\"yAxis\":0,\"type\":\"pie\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"showDataLabels\":true,\"numBins\":10,\"columnConfigurationMap\":{\"x\":{\"column\":\"cloud\",\"id\":\"column_9ca44ed6135\"},\"series\":{\"column\":\"cloud\",\"id\":\"column_36e756e670\"},\"y\":[{\"id\":\"column_36e756e672\",\"column\":\"num_failures\",\"transform\":\"SUM\"}]},\"isAggregationOn\":true}",
+                "query_name": "1f7679514cf5473286af6c8576453dbe"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 56,
+            "width": 3,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "7c711f08",
+            "queries": [
+              {
+                "name": "6db8f0b77e6d4e02924492c2f84ba3da",
+                "query": {
+                  "datasetName": "3df2e81f",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Job Failures in past 2 days",
+                "description": "",
+                "viz_type": "TABLE",
+                "serialized_options": "{\"itemsPerPage\":25,\"condensed\":true,\"withRowNumber\":false,\"columns\":[{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"run_name\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":0,\"title\":\"Job Name\",\"allowSearch\":true,\"alignContent\":\"left\",\"allowHTML\":false,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false},{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"cloud\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":1,\"title\":\"cloud\",\"allowSearch\":false,\"alignContent\":\"left\",\"allowHTML\":false,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false},{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"region\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":2,\"title\":\"region\",\"allowSearch\":false,\"alignContent\":\"left\",\"allowHTML\":false,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false},{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"result_state\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":3,\"title\":\"result_state\",\"allowSearch\":false,\"alignContent\":\"left\",\"allowHTML\":false,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false},{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"link\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":4,\"title\":\"link\",\"allowSearch\":false,\"alignContent\":\"left\",\"allowHTML\":false,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false},{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"state_message\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":5,\"title\":\"state_message\",\"allowSearch\":false,\"alignContent\":\"left\",\"allowHTML\":false,\"highlightLinks\":true,\"useMonospaceFont\":false,\"preserveWhitespace\":false},{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"task_error\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":6,\"title\":\"task_error\",\"allowSearch\":false,\"alignContent\":\"left\",\"allowHTML\":true,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false},{\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"end_time_ams\",\"type\":\"datetime\",\"displayAs\":\"datetime\",\"visible\":true,\"order\":7,\"title\":\"end_time_ams\",\"allowSearch\":false,\"alignContent\":\"right\",\"allowHTML\":false,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false}],\"version\":2}",
+                "query_name": "6db8f0b77e6d4e02924492c2f84ba3da"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 18
+          }
+        },
+        {
+          "widget": {
+            "name": "8e91e720",
+            "queries": [
+              {
+                "name": "49e071b3863b47aaa12ec7dec11b8a0d",
+                "query": {
+                  "datasetName": "85987ea7",
+                  "fields": [
+                    {
+                      "name": "column_bf90d768772",
+                      "expression": "SUM(`num_failures`)"
+                    },
+                    {
+                      "name": "date",
+                      "expression": "`date`"
+                    },
+                    {
+                      "name": "error_code",
+                      "expression": "`error_code`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Daily job failures by error code",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"line\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true}},\"seriesOptions\":{\"column_bf90d768772\":{\"yAxis\":0,\"type\":\"line\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"showDataLabels\":false,\"columnConfigurationMap\":{\"x\":{\"column\":\"date\",\"id\":\"column_bf90d768768\"},\"y\":[{\"id\":\"column_bf90d768772\",\"column\":\"num_failures\",\"transform\":\"SUM\"}],\"series\":{\"column\":\"error_code\",\"id\":\"column_bf90d768770\"}},\"isAggregationOn\":true}",
+                "query_name": "49e071b3863b47aaa12ec7dec11b8a0d"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 45,
+            "width": 3,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "9896a13c",
+            "queries": [
+              {
+                "name": "c7f8a13d3dae49dea9f30e83204889eb",
+                "query": {
+                  "datasetName": "ee597103",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Current status",
+                "description": "Below is the latest status of jobs",
+                "viz_type": "TABLE",
+                "serialized_options": "{\"itemsPerPage\":20,\"condensed\":true,\"withRowNumber\":true,\"columns\":[{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"run_name\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":100000,\"title\":\"Job Name\",\"allowSearch\":true,\"alignContent\":\"left\",\"allowHTML\":false,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false},{\"booleanValues\":[\"false\",\"true\"],\"imageUrlTemplate\":\"{{ @ }}\",\"imageTitleTemplate\":\"{{ @ }}\",\"imageWidth\":\"\",\"imageHeight\":\"\",\"linkUrlTemplate\":\"{{ @ }}\",\"linkTextTemplate\":\"{{ @ }}\",\"linkTitleTemplate\":\"{{ @ }}\",\"linkOpenInNewTab\":true,\"name\":\"westEurope (primary)\",\"type\":\"string\",\"displayAs\":\"string\",\"visible\":true,\"order\":100001,\"title\":\"Status\",\"allowSearch\":true,\"alignContent\":\"left\",\"allowHTML\":true,\"highlightLinks\":false,\"useMonospaceFont\":false,\"preserveWhitespace\":false}],\"version\":2}",
+                "query_name": "c7f8a13d3dae49dea9f30e83204889eb"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 15
+          }
+        },
+        {
+          "widget": {
+            "name": "dd0dbb61",
+            "queries": [
+              {
+                "name": "a5d8cf5096a9461da8a8b5895949e03d",
+                "query": {
+                  "datasetName": "f2695168",
+                  "fields": [
+                    {
+                      "name": "cloud_pipeline",
+                      "expression": "`cloud_pipeline`"
+                    },
+                    {
+                      "name": "column_36e756e687",
+                      "expression": "SUM(`num_failures`)"
+                    },
+                    {
+                      "name": "date_hour",
+                      "expression": "`date_hour`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Hourly number of failures per cloud/job in past 2 days",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"line\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true},\"percentValues\":false},\"seriesOptions\":{\"column_36e756e687\":{\"yAxis\":0,\"type\":\"line\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"showDataLabels\":false,\"columnConfigurationMap\":{\"x\":{\"column\":\"date_hour\",\"id\":\"column_9ca44ed6150\"},\"y\":[{\"id\":\"column_36e756e687\",\"column\":\"num_failures\",\"transform\":\"SUM\"}],\"series\":{\"column\":\"cloud_pipeline\",\"id\":\"column_9ca44ed6142\"}},\"isAggregationOn\":true}",
+                "query_name": "a5d8cf5096a9461da8a8b5895949e03d"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 68,
+            "width": 3,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "f8e24f67",
+            "queries": [
+              {
+                "name": "5c1d27715dfb4401ba6758e26546fa90",
+                "query": {
+                  "datasetName": "bfb63e38",
+                  "fields": [
+                    {
+                      "name": "cloud_pipeline",
+                      "expression": "`cloud_pipeline`"
+                    },
+                    {
+                      "name": "column_36e756e6108",
+                      "expression": "SUM(`num_failures`)"
+                    },
+                    {
+                      "name": "column_9ca44ed6171",
+                      "expression": "DATE_TRUNC(\"DAY\", `date_hour`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total number of failures per cloud/job in past 2 days",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"line\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true}},\"seriesOptions\":{\"column_36e756e6108\":{\"yAxis\":0,\"type\":\"line\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss.SSS\",\"showDataLabels\":false,\"columnConfigurationMap\":{\"x\":{\"column\":\"date_hour\",\"transform\":\"DAY_LEVEL\",\"id\":\"column_9ca44ed6171\"},\"y\":[{\"id\":\"column_36e756e6108\",\"column\":\"num_failures\",\"transform\":\"SUM\"}],\"series\":{\"column\":\"cloud_pipeline\",\"id\":\"column_9ca44ed690\"}},\"isAggregationOn\":true}",
+                "query_name": "5c1d27715dfb4401ba6758e26546fa90"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 68,
+            "width": 3,
+            "height": 11
+          }
+        }
+      ]
+    }
+  ]
+}
